@@ -55,6 +55,7 @@ use Illuminate\Database\Eloquent\SoftDeletes;
  * @method static \Illuminate\Database\Eloquent\Builder<static>|Account withTrashed()
  * @method static \Illuminate\Database\Eloquent\Builder<static>|Account withoutTrashed()
  * @mixin Eloquent
+ * @mixin Eloquent
  */
 class Account extends Model
 {

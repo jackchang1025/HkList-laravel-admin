@@ -31,6 +31,7 @@ use Illuminate\Database\Eloquent\SoftDeletes;
  * @method static \Illuminate\Database\Eloquent\Builder<static>|Group withTrashed()
  * @method static \Illuminate\Database\Eloquent\Builder<static>|Group withoutTrashed()
  * @mixin Eloquent
+ * @mixin Eloquent
  */
 class Group extends Model
 {

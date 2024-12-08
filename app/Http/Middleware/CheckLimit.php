@@ -20,7 +20,6 @@ class CheckLimit
         // 确保响应是 JsonResponse 类型
         if ($response instanceof \Illuminate\Http\JsonResponse) {
             $data = $response->getData(true);
-            $quotaInfo = null;
 
             // 检查是否使用token
             if (config('94list.token_mode') && !empty($request->input('token'))) {
@@ -48,6 +47,9 @@ class CheckLimit
 
             }
 
+            /**
+             * @var \App\Models\User $user
+             */
             $user = Auth::guard('api')->user();
             if ($user) {
                 $quotaInfo = $user->getQuotaInfo();

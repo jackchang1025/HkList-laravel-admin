@@ -31,6 +31,7 @@ use Illuminate\Database\Eloquent\Model;
  * @method static \Illuminate\Database\Eloquent\Builder<static>|FileList whereSurl($value)
  * @method static \Illuminate\Database\Eloquent\Builder<static>|FileList whereUpdatedAt($value)
  * @mixin Eloquent
+ * @mixin Eloquent
  */
 class FileList extends Model
 {

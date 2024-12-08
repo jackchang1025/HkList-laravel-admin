@@ -2,6 +2,7 @@
 
 namespace App\Models;
 
+use Barryvdh\LaravelIdeHelper\Eloquent;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\SoftDeletes;
@@ -37,7 +38,7 @@ use Illuminate\Database\Eloquent\SoftDeletes;
  * @method static \Illuminate\Database\Eloquent\Builder<static>|Token whereUpdatedAt($value)
  * @method static \Illuminate\Database\Eloquent\Builder<static>|Token withTrashed()
  * @method static \Illuminate\Database\Eloquent\Builder<static>|Token withoutTrashed()
- * @mixin \Eloquent
+ * @mixin Eloquent
  */
 class Token extends Model
 {
@@ -74,7 +75,7 @@ class Token extends Model
         $remainingCount = $this->count - $usedCount;
         $remainingSize = ($this->size * 1073741824) - $usedSize;
 
-        $quotaInfo = [
+        return [
             'group_name' => $this->name,
             'remaining_count' => $remainingCount,
             'remaining_size' => $this->formatSize($remainingSize),
@@ -84,8 +85,6 @@ class Token extends Model
             'total_size' => $this->formatSize($this->size * 1073741824),
             'expired_at' => $this->expired_at ?? '未使用'
         ];
-
-        return $quotaInfo;
     }
 
        /**
