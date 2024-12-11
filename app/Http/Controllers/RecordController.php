@@ -36,13 +36,13 @@ class RecordController extends Controller
     {
         $total = Record::query()
                        ->leftJoin("file_lists", "records.fs_id", "file_lists.id")
-                       ->selectRaw("SUM(size) as size,COUNT(*) as count")
+                       ->selectRaw("SUM(file_lists.size) as size,COUNT(*) as count")
                        ->first();
 
         $today = Record::query()
                        ->leftJoin("file_lists", "records.fs_id", "file_lists.id")
                        ->whereDate("records.created_at", Carbon::today(config("app.timezone")))
-                       ->selectRaw("SUM(size) as size,COUNT(*) as count")
+                       ->selectRaw("SUM(file_lists.size) as size,COUNT(*) as count")
                        ->first();
 
         return ResponseController::success([
