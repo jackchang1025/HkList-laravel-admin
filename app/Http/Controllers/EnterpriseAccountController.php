@@ -17,13 +17,26 @@ class EnterpriseAccountController extends Controller
      */
     public function index(Request $request)
     {
+
         $validated = $request->validate([
             'page' => 'integer|min:1',
             'size' => 'integer|min:1|max:100',
             'keyword' => 'nullable|string|max:50',
-            'is_active' => 'nullable|boolean',
+            'is_active' => 'nullable',
             'sort_field' => 'nullable|string|in:id,cid,created_at,updated_at',
             'sort_order' => 'nullable|string|in:asc,desc'
+        ], [
+            'page.integer' => '页码必须是整数',
+            'page.min' => '页码最小值为1',
+            'size.integer' => '每页显示数量必须是整数',
+            'size.min' => '每页显示数量最小值为1',
+            'size.max' => '每页显示数量最大值为100',
+            'keyword.string' => '关键词必须是字符串',
+            'keyword.max' => '关键词最大长度为50个字符',
+            'sort_field.string' => '排序字段必须是字符串',
+            'sort_field.in' => '排序字段必须是id, cid, created_at, updated_at之一',
+            'sort_order.string' => '排序顺序必须是字符串',
+            'sort_order.in' => '排序顺序必须是asc或desc'
         ]);
 
         $query = EnterpriseAccount::query();
@@ -40,7 +53,12 @@ class EnterpriseAccountController extends Controller
 
         // 激活状态筛选
         if (isset($validated['is_active'])) {
-            $query->where('is_active', $validated['is_active']);
+
+            if ($validated['is_active'] === 'true') {
+                $query->where('is_active', true);
+            } else {
+                $query->where('is_active', false);
+            }
         }
 
         // 排序
@@ -105,6 +123,12 @@ class EnterpriseAccountController extends Controller
     public function destroy($id)
     {
         $account = EnterpriseAccount::findOrFail($id);
+        
+        // 检查是否有关联的账号
+        if ($account->accounts()->count() > 0) {
+            return ResponseController::error(message:'该企业账号下存在关联的百度账号,无法删除',statusCode:400);
+        }
+        
         $account->delete();
         return ResponseController::success(null, '删除成功');
     }
@@ -118,6 +142,15 @@ class EnterpriseAccountController extends Controller
             'ids' => 'required|array',
             'ids.*' => 'integer'
         ]);
+
+        // 检查所有要删除的账号是否有关联
+        $hasAccounts = EnterpriseAccount::whereIn('id', $validated['ids'])
+            ->whereHas('accounts')
+            ->exists();
+        
+        if ($hasAccounts) {
+            return ResponseController::error('选中的企业账号中存在关联的百度账号,无法删除',statusCode:400);
+        }
 
         EnterpriseAccount::whereIn('id', $validated['ids'])->delete();
         return ResponseController::success(null, '批量删除成功');
