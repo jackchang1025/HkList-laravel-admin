@@ -247,7 +247,7 @@ class AccountController extends Controller
 
     public static function updateAccount(Request $request, $account_id)
     {
-        $validator = Validator::make($request->all(), [
+        $request->validate([
             "baidu_name" => "required|string",
             "account_type" => ["required", Rule::in(["cookie", "access_token", "enterprise"])],
             "access_token" => "nullable|string",
@@ -258,11 +258,22 @@ class AccountController extends Controller
             "prov" => ["nullable", Rule::in(["北京市", "天津市", "上海市", "重庆市", "河北省", "山西省", "内蒙古自治区", "辽宁省", "吉林省", "黑龙江省", "江苏省", "浙江省", "安徽省", "福建省", "江西省", "山东省", "河南省", "湖北省", "湖南省", "广东省", "广西壮族自治区", "海南省", "四川省", "贵州省", "云南省", "西藏自治区", "陕西省", "甘肃省", "青海省", "宁夏回族自治区", "新疆维吾尔自治区", "香港特别行政区", "澳门特别行政区", "台湾省"])],
             "reason" => "string",
             "enterprise_account_id" => "nullable|exists:enterprise_accounts,id"
+        ], [
+            "baidu_name.required" => "百度名称为必填项",
+            "baidu_name.string" => "百度名称必须是字符串",
+            "account_type.required" => "账号类型为必填项",
+            "account_type.in" => "账号类型必须是: cookie, access_token, enterprise 之一",
+            "access_token.string" => "访问令牌必须是字符串",
+            "refresh_token.string" => "刷新令牌必须是字符串",
+            "cookie.string" => "Cookie 必须是字符串",
+            "vip_type.required" => "VIP 类型为必填项",
+            "vip_type.in" => "VIP 类型必须是: 超级会员, 假超级会员, 普通会员, 普通用户 之一",
+            "switch.required" => "开关状态为必填项",
+            "switch.boolean" => "开关状态必须是布尔值",
+            "prov.in" => "省份必须是有效的省份名称",
+            "reason.string" => "原因必须是字符串",
+            "enterprise_account_id.exists" => "企业账号 ID 必须存在"
         ]);
-
-        if ($validator->fails()) {
-            return ResponseController::paramsError();
-        }
 
         $account = Account::query()->find($account_id);
         if (!$account) {
