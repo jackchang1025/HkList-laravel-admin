@@ -16,6 +16,7 @@ use App\Http\Middleware\CheckLimit;
 use App\Http\Middleware\RegisterOrLoginUser;
 use Illuminate\Support\Facades\Route;
 use App\Http\Controllers\ResponseController;
+use App\Http\Controllers\EnterpriseAccountController;
 
 Route::post("/install", [InstallController::class, "install"]);
 
@@ -24,6 +25,7 @@ Route::get("/message/list", function(){
 
     return ResponseController::success(['list' => config('94list.message_list')]);
 });
+
 
 //"ParamCheck"
 Route::middleware(["NeedInstall", "AutoUpdate", ])->group(function () {
@@ -38,11 +40,13 @@ Route::middleware(["NeedInstall", "AutoUpdate", ])->group(function () {
                 Route::post("/link", [ApiParseController::class, "link"]);
             });
 
-            Route::post("/get_vcode", [ParseController::class, "getVcode"]);
             Route::post("/get_file_list", [ParseController::class, "getFileList"]);
             Route::post("/get_download_links", [ParseController::class, "getDownloadLinks"]);
 
         });
+
+
+        Route::post("/get_vcode", [ParseController::class, "getVcode"]);
     });
 
     Route::prefix("/user")->group(function () {
@@ -120,6 +124,15 @@ Route::middleware(["NeedInstall", "AutoUpdate", ])->group(function () {
                 Route::post("/", [MailConfigController::class, "sendTestMail"]);
                 Route::patch("/", [MailConfigController::class, "updateMailConfig"]);
             });
+        });
+
+        Route::prefix("/enterprise")->group(function () {
+            Route::get("/", [EnterpriseAccountController::class, "index"]);
+            Route::post("/", [EnterpriseAccountController::class, "store"]);
+            Route::patch("/{id}", [EnterpriseAccountController::class, "update"]);
+            Route::delete("/{id}", [EnterpriseAccountController::class, "destroy"]);
+            Route::delete("/", [EnterpriseAccountController::class, "batchDestroy"]);
+            Route::patch("/{id}/toggle", [EnterpriseAccountController::class, "toggleActive"]);
         });
     });
 });
