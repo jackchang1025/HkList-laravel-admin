@@ -8,7 +8,7 @@ use Illuminate\Http\Request;
 use Symfony\Component\HttpFoundation\Response;
 use App\Models\Token;
 use App\Http\Controllers\UtilsController;
-
+use App\Services\QuotaService;
 class NeedPassword
 {
     /**
@@ -27,8 +27,11 @@ class NeedPassword
              // 验证token是否有效
             $token = Token::query()->firstWhere('name', $request->input('token'));
             if ($token) {
+
+                $quotaService = QuotaService::make($token);
+
                 // 验证IP限制
-                if ($token['ip'] !== null && $token['ip'] !== UtilsController::getIp()) {
+                if (!$quotaService->checkIp(UtilsController::getIp())) {
                     return ResponseController::error(
                         code: 403,
                         title: 'IP限制',
@@ -45,7 +48,7 @@ class NeedPassword
                 }
 
                 // 验证过期时间
-                if ($token['expired_at'] !== null && $token['expired_at'] < now()) {
+                if ($quotaService->isExpired()) {
 
                     return ResponseController::error(
                         code: 403,
@@ -63,9 +66,9 @@ class NeedPassword
                     
                 }
 
-                $quotaInfo = $token->getQuotaInfo();
+                
                 //判断配额是否已用完
-                if ($quotaInfo['remaining_count'] <= 0 || $quotaInfo['remaining_size'] <= 0) {
+                if ($quotaService->isUsedUp() || $quotaService->isFileSizeUsedUp()) {
 
                     return ResponseController::error(
                         code: 403,  

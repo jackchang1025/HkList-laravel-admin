@@ -58,49 +58,4 @@ class Token extends Model
     {
         return $this->hasMany(Record::class)->withTrashed();
     }
-
-    public function getQuotaInfo():array
-    {
-
-        // 获取token的使用记录
-        $records = Record::query()
-        ->where('token_id', $this->id)
-        ->whereDate('records.created_at', now()) // 明确指定表名
-        ->leftJoin('file_lists', 'file_lists.id', '=', 'records.fs_id')
-        ->selectRaw('SUM(size) as size, COUNT(*) as count')
-        ->first();
-
-        $usedCount = $records['count'] ?? 0;
-        $usedSize = $records['size'] ?? 0;
-        $remainingCount = $this->count - $usedCount;
-        $remainingSize = ($this->size * 1073741824) - $usedSize;
-
-        return [
-            'group_name' => $this->name,
-            'remaining_count' => $remainingCount,
-            'remaining_size' => $this->formatSize($remainingSize),
-            'used_count' => $usedCount,
-            'used_size' => $this->formatSize($usedSize),
-            'total_count' => $this->count,
-            'total_size' => $this->formatSize($this->size * 1073741824),
-            'expired_at' => $this->expired_at ?? '未使用'
-        ];
-    }
-
-       /**
-     * 格式化文件大小
-     *
-     * @param int $size 字节数
-     * @return string
-     */
-    private function formatSize(int $size): string
-    {
-        $units = ['B', 'KB', 'MB', 'GB', 'TB'];
-        $index = 0;
-        while ($size >= 1024 && $index < count($units) - 1) {
-            $size /= 1024;
-            $index++;
-        }
-        return round($size, 2) . ' ' . $units[$index];
-    }
 }

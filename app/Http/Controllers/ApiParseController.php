@@ -28,6 +28,7 @@ use Illuminate\Validation\Rule;
 use Illuminate\Validation\ValidationException;
 use XdbSearcher;
 use App\Services\DownloadTicketService;
+use App\Services\QuotaService;
 
 class ApiParseController extends Controller
 {
@@ -249,52 +250,56 @@ class ApiParseController extends Controller
                 "token" => "required|string",
             ]);
 
-            if ($validator->fails()) return ResponseController::paramsError();
+            if ($validator->fails()) {
+                return ResponseController::paramsError();
+            }
 
             $token = Token::query()->firstWhere("name", $request["token"]);
-            if (!$token) return ResponseController::TokenNotExists();
+            if (!$token) {
+                return ResponseController::TokenNotExists();
+            }
 
-            if ($token["ip"] !== null && $token["ip"] !== UtilsController::getIp()) return ResponseController::TokenIpIsNotMatch();
+            $quotaService = QuotaService::make($token);
+
+            if (!$quotaService->checkIp(UtilsController::getIp())) {
+                return ResponseController::TokenIpIsNotMatch();
+            }
 
             // 检查是否已经过期
-            if ($token["expired_at"] !== null && $token["expired_at"] < now()) return ResponseController::TokenExpired();
+            if ($quotaService->isExpired()) {
+                return ResponseController::TokenExpired();
+            }
 
-            $records = Record::query()
-                ->where("token_id", $token["id"])
-                ->leftJoin("file_lists", "file_lists.id", "=", "records.fs_id")
-                ->selectRaw("SUM(size) as size,COUNT(*) as count")
-                ->first();
+            //检查配额是否用完
+            if ($quotaService->isUsedUp() || $quotaService->isFileSizeUsedUp()) {
+                return ResponseController::TokenQuotaHasBeenUsedUp();
+            }
 
-            if ($records["count"] >= $token["count"] || $records["size"] >= $token["size"] * 1073741824) return ResponseController::TokenQuotaHasBeenUsedUp();
+            $quotaInfo = $quotaService->getQuotaInfo();
 
             return ResponseController::success([
-                "group_name" => $token["name"],
-                "count" => $token["count"] - $records["count"],
-                "size" => $token["size"] * 1073741824 - $records["size"],
-                "expired_at" => $token["expired_at"] ?? "未使用",
+                "group_name" => $quotaInfo["group_name"],
+                "count" => $quotaInfo['remaining_count'],
+                "size" => $quotaInfo['remaining_size'],
+                "expired_at" => $quotaInfo["expired_at"],
             ]);
         }
 
-        // 获取今日解析数量
-        $group = Group::withTrashed()->find(Auth::guard('api')->check() ? InvCode::withTrashed()->find(Auth::guard('api')->user()["inv_code_id"])["group_id"] : 1);
+        $quotaService = QuotaService::make(Auth::guard('api')->user());
 
-        $records = Record::query()
-            ->where([
-                "user_id" =>Auth::guard('api')->check() ? Auth::guard('api')->user()["id"] : 1,
-                "ip" => UtilsController::getIp(),
-            ])
-            ->whereDate("records.created_at", now())
-            ->leftJoin("file_lists", "file_lists.id", "=", "records.fs_id")
-            ->selectRaw("SUM(file_lists.size) as size, COUNT(*) as count")
-            ->first();
+        //检查配额是否用完
+        if ($quotaService->isUsedUp() || $quotaService->isFileSizeUsedUp()) {
+            return ResponseController::groupQuotaHasBeenUsedUp();
+        }
 
-        if ($records["count"] >= $group["count"] || $records["size"] >= $group["size"] * 1073741824) return ResponseController::groupQuotaHasBeenUsedUp();
+        $quotaInfo = $quotaService->getQuotaInfo();
 
         return ResponseController::success([
-            "group_name" => $group["name"],
-            "count" => $group["count"] - $records["count"],
-            "size" => $group["size"] * 1073741824 - $records["size"],
+            "group_name" => $quotaInfo["group_name"],
+            "count" => $quotaInfo['remaining_count'],
+            "size" => $quotaInfo['remaining_size'],
         ]);
+
     }
 
     public static function decodeSecKey($seckey)
