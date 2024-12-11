@@ -28,7 +28,7 @@ use Illuminate\Support\Facades\Validator;
 use Illuminate\Validation\Rule;
 use Illuminate\Validation\ValidationException;
 use XdbSearcher;
-
+use App\Services\DownloadTicketService;
 class ParseController extends Controller
 {
     public function getConfig(Request $request)
@@ -589,8 +589,9 @@ class ParseController extends Controller
         if (isset($request["account_ids"]) && $request["account_ids"] !== "") {
             $user_id = Auth::check() ? Auth::user()["id"] : 1;
             $user = User::query()->find($user_id);
-            $role = $user["role"];
-            if ($role !== "admin") return ResponseController::permissionsDenied();
+            if ($user?->role !== "admin") {
+                return ResponseController::permissionsDenied();
+            }
 
             // 判断是否只是一个文件
             if (count($request["fs_ids"]) > 1) return ResponseController::onlyOneFile();
@@ -640,7 +641,13 @@ class ParseController extends Controller
         }
 
         if ($parse_mode === 13) {
-            $json["download_ticket"] = config("94list.download_ticket");
+
+            //判断下载票据是否为空
+            $ticket = DownloadTicketService::getNextTicket();
+            if ($ticket === null) {
+                return ResponseController::errorFromMainServer("下载票据为空,请联系管理员");
+            }
+            $json["download_ticket"] = $ticket;
         }
 
         try {

@@ -10,7 +10,6 @@ use App\Models\Ip;
 use App\Models\Record;
 use App\Models\Token;
 use App\Models\User;
-use App\Parse as GlobalParse;
 use Exception;
 use GuzzleHttp\Client;
 use GuzzleHttp\Exception\GuzzleException;
@@ -28,6 +27,7 @@ use Illuminate\Support\Facades\Validator;
 use Illuminate\Validation\Rule;
 use Illuminate\Validation\ValidationException;
 use XdbSearcher;
+use App\Services\DownloadTicketService;
 
 class ApiParseController extends Controller
 {
@@ -145,15 +145,19 @@ class ApiParseController extends Controller
         $ip = UtilsController::getIp();
         if (config("94list.limit_cn") || config("94list.limit_prov")) {
             $prov = self::getProvinceFromIP($ip);
-            if ($prov === false) return ResponseController::unsupportNotCNCountry();
+            if ($prov === false) {
+                return ResponseController::unsupportNotCNCountry();
+            }
         } else {
             $prov = null;
         }
 
-        $account_type = in_array(config("94list.parse_mode"), [5, 10]) ? "access_token" : "cookie";
-        if (config("94list.parse_mode") === 11) $account_type = "enterprise";
+        $account_type = in_array(config("94list.parse_mode"), [5, 10], true) ? "access_token" : "cookie";
+        if (config("94list.parse_mode") === 11) {
+            $account_type = "enterprise";
+        }
 
-        if (in_array("超级会员", $vipType)) {
+        if (in_array("超级会员", $vipType, true)) {
             // 刷新令牌
             $refreshAccounts = Account::query()
                 ->where([
@@ -174,7 +178,9 @@ class ApiParseController extends Controller
                             "reason" => $updateData["message"],
                         ]);
                     }
-                    if ($index < $refreshAccount->count() - 1) sleep(0.5);
+                    if ($index < $refreshAccount->count() - 1) {
+                        sleep(0.5);
+                    }
                 }
             }
 
@@ -201,10 +207,14 @@ class ApiParseController extends Controller
                         ]);
                         $updateFailedAccounts[] = $account->toJson();
                     }
-                    if ($index < $banAccounts->count() - 1) sleep(0.5);
+                    if ($index < $banAccounts->count() - 1) {
+                        sleep(0.5);
+                    }
                 }
 
-                if (count($updateFailedAccounts) > 0) UtilsController::sendMail("有账户已过期,详见:" . JSON::encode($updateFailedAccounts));
+                if (count($updateFailedAccounts) > 0) {
+                    UtilsController::sendMail("有账户已过期,详见:".JSON::encode($updateFailedAccounts));
+                }
             }
         }
 
@@ -225,7 +235,9 @@ class ApiParseController extends Controller
             $account = self::_getRandomCookie(null, $vipType, $account_type);
         }
 
-        if (!$account) return ResponseController::svipAccountIsNotEnough(true, $vipType);
+        if (!$account) {
+            return ResponseController::svipAccountIsNotEnough(true, $vipType);
+        }
 
         return ResponseController::success($account);
     }
@@ -621,11 +633,15 @@ class ApiParseController extends Controller
         if (isset($request["account_ids"]) && $request["account_ids"] !== "") {
             $user_id = Auth::guard('api')->check() ? Auth::guard('api')->user()["id"] : 1;
             $user = User::query()->find($user_id);
-            $role = $user["role"];
-            if ($role !== "admin") return ResponseController::permissionsDenied();
+
+            if ($user?->role !== "admin") {
+                return ResponseController::permissionsDenied();
+            }
 
             // 判断是否只是一个文件
-            if (count($request["fs_ids"]) > 1) return ResponseController::onlyOneFile();
+            if (count($request["fs_ids"]) > 1) {
+                return ResponseController::onlyOneFile();
+            }
 
             $json["fsidlist"] = [];
             $request["account_ids"] = explode(",", $request["account_ids"]);
@@ -657,7 +673,9 @@ class ApiParseController extends Controller
                 }
                 $cookie = self::getRandomCookie($account_type);
                 $cookieData = $cookie->getData(true);
-                if ($cookieData["code"] !== 200) return $cookie;
+                if ($cookieData["code"] !== 200) {
+                    return $cookie;
+                }
                 $arr = ["id" => $cookieData["data"]["id"]];
                 if ($cookieData["data"]["account_type"] === "access_token") {
                     $arr["access_token"] = $cookieData["data"]["access_token"];
@@ -672,7 +690,13 @@ class ApiParseController extends Controller
         }
 
         if ($parse_mode === 13) {
-            $json["download_ticket"] = config("94list.download_ticket");
+
+            //判断下载票据是否为空
+            $ticket = DownloadTicketService::getNextTicket();
+            if ($ticket === null) {
+                return ResponseController::errorFromMainServer("下载票据为空,请联系管理员");
+            }
+            $json["download_ticket"] = $ticket;
         }
 
         try {
@@ -697,8 +721,12 @@ class ApiParseController extends Controller
             return ResponseController::networkError("连接解析服务器");
         }
 
-        if (!$response) return ResponseController::errorFromMainServer("未知原因");
-        if ($response["code"] !== 200) return ResponseController::errorFromMainServer($response["message"] ?? "未知原因");
+        if (!$response) {
+            return ResponseController::errorFromMainServer("未知原因");
+        }
+        if ($response["code"] !== 200) {
+            return ResponseController::errorFromMainServer($response["message"] ?? "未知原因");
+        }
         $responseData = $response["data"];
 
         if (isset($request["token"]) && $request["token"] !== "") {
@@ -807,8 +835,12 @@ class ApiParseController extends Controller
             return $res;
         }, $responseData);
 
-        if (count($limited) !== 0) UtilsController::sendMail("有账户被限速,账号ID:" . JSON::encode($limited));
-        if (count($banned) !== 0) UtilsController::sendMail("有账户被风控,账号ID:" . JSON::encode($banned));
+        if (count($limited) !== 0) {
+            UtilsController::sendMail("有账户被限速,账号ID:".JSON::encode($limited));
+        }
+        if (count($banned) !== 0) {
+            UtilsController::sendMail("有账户被风控,账号ID:".JSON::encode($banned));
+        }
 
         return ResponseController::success($data);
     }
