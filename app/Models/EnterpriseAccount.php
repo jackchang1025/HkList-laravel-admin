@@ -43,4 +43,9 @@ class EnterpriseAccount extends Model
     {
         return $query->where('is_active', true);
     }
+
+    public function accounts()
+    {
+        return $this->hasMany(Account::class);
+    }
 }

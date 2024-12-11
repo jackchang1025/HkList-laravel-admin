@@ -99,14 +99,17 @@ class ApiParseController extends Controller
         return null;
     }
 
-    public static function _getRandomCookie($prov, $vipType, $account_type)
+    public static function _getRandomCookie($prov, $vipType, $account_type,?int $enterpriseAccountId = null)
     {
         $where = [
             "switch" => 1,
             "account_type" => $account_type,
         ];
-        if (config("94list.limit_prov")) $where["prov"] = $prov;
+        if (config("94list.limit_prov")) {
+            $where["prov"] = $prov;
+        }
         return Account::query()
+            ->when($enterpriseAccountId, fn ($query) => $query->where('enterprise_account_id', $enterpriseAccountId))
             ->where($where)
             ->whereIn("vip_type", $vipType)
             ->leftJoin("records", function ($join) {
@@ -141,7 +144,7 @@ class ApiParseController extends Controller
             ->first();
     }
 
-    public static function getRandomCookie($vipType = ["超级会员"], $makeNew = true)
+    public function getRandomCookie($vipType = ["超级会员"], $makeNew = true,?int $enterpriseAccountId = null)
     {
         $ip = UtilsController::getIp();
         if (config("94list.limit_cn") || config("94list.limit_prov")) {
@@ -161,6 +164,7 @@ class ApiParseController extends Controller
         if (in_array("超级会员", $vipType, true)) {
             // 刷新令牌
             $refreshAccounts = Account::query()
+                ->when($enterpriseAccountId, fn ($query) => $query->where('enterprise_account_id', $enterpriseAccountId))
                 ->where([
                     "switch" => 1,
                     "vip_type" => $vipType,
@@ -187,6 +191,7 @@ class ApiParseController extends Controller
 
             // 禁用过期的账户
             $banAccounts = Account::query()
+                ->when($enterpriseAccountId, fn ($query) => $query->where('enterprise_account_id', $enterpriseAccountId))
                 ->where([
                     "switch" => 1,
                     "vip_type" => "超级会员",
@@ -221,10 +226,10 @@ class ApiParseController extends Controller
 
         // 判斷是否獲取到了省份
         if ($prov !== null) {
-            $account = self::_getRandomCookie($prov, $vipType, $account_type);
+            $account = self::_getRandomCookie($prov, $vipType, $account_type, $enterpriseAccountId);
 
             if ($account === null) {
-                $account = self::_getRandomCookie(null, $vipType, $account_type);
+                $account = self::_getRandomCookie(null, $vipType, $account_type, $enterpriseAccountId);
 
                 if ($makeNew) {
                     $account?->update([
@@ -233,7 +238,7 @@ class ApiParseController extends Controller
                 }
             }
         } else {
-            $account = self::_getRandomCookie(null, $vipType, $account_type);
+            $account = self::_getRandomCookie(null, $vipType, $account_type, $enterpriseAccountId);
         }
 
         if (!$account) {
@@ -634,6 +639,32 @@ class ApiParseController extends Controller
         // 插入会员账号
         $json["cookie"] = [];
 
+        if ($parse_mode === 13) {
+
+            //判断下载票据是否为空
+            $ticket = DownloadTicketService::getNextTicket();
+            if ($ticket === null) {
+                return ResponseController::errorFromMainServer("企业账号票据为空,请联系管理员");
+            }
+
+            //判断企业账号关联的账号是否为空
+            $account = Account::query()
+            ->where('enterprise_account_id', $ticket['id'])
+            ->where('switch', 1)
+            ->get();
+
+            if ($account->isEmpty()) {
+                return ResponseController::errorFromMainServer("企业账号关联的账号为空,请联系管理员");
+            }
+
+             //判断 count($request["fs_ids"]) 是否大于等于 $account->count()
+             if (count($request["fs_ids"]) > $account->count()) {
+                return ResponseController::errorFromMainServer("企业账号关联的账号数量不足,请联系管理员");
+            }
+
+            $json["download_ticket"] = $ticket;
+        }
+
         // 检查是否指定了账号管理员
         if (isset($request["account_ids"]) && $request["account_ids"] !== "") {
             $user_id = Auth::guard('api')->check() ? Auth::guard('api')->user()["id"] : 1;
@@ -651,32 +682,55 @@ class ApiParseController extends Controller
             $json["fsidlist"] = [];
             $request["account_ids"] = explode(",", $request["account_ids"]);
             foreach ($request["account_ids"] as $account_id) {
-                $account = Account::query()->find($account_id);
-                if (!$account) return ResponseController::accountNotExists();
+
+
+                 if ($parse_mode=== 13){
+
+                    $account = Account::query()->where("enterprise_account_id", $ticket['id'])->find($account_id);
+                }else{
+                    $account = Account::query()->find($account_id);
+                }
+
+                if (!$account) {
+                    return ResponseController::accountNotExists();
+                }
+
                 $arr = ["id" => $account_id];
-                if (in_array($parse_mode, [5, 10])) {
-                    if ($account["account_type"] !== "access_token") return ResponseController::accountTypeWrong($account_id);
+                if (in_array($parse_mode, [5, 10], true)) {
+                    if ($account["account_type"] !== "access_token") {
+                        return ResponseController::accountTypeWrong($account_id);
+                    }
                     $arr["access_token"] = $account["access_token"];
                 } else if ($parse_mode === 11) {
-                    if ($account["account_type"] !== "enterprise") return ResponseController::accountTypeWrong($account_id);
+                    if ($account["account_type"] !== "enterprise") {
+                        return ResponseController::accountTypeWrong($account_id);
+                    }
                     $arr["cookie"] = $account["cookie"];
                     $arr["cid"] = $account["cid"];
                 } else {
-                    if ($account["account_type"] !== "cookie") return ResponseController::accountTypeWrong($account_id);
+                    if ($account["account_type"] !== "cookie") {
+                        return ResponseController::accountTypeWrong($account_id);
+                    }
                     $arr["cookie"] = $account["cookie"];
                 }
                 $json["cookie"][] = $arr;
                 $json["fsidlist"][] = $request["fs_ids"][0];
             }
         } else {
-            for ($i = 0; $i < count($request["fs_ids"]); $i++) {
+            for ($i = 0, $iMax = count($request["fs_ids"]); $i < $iMax; $i++) {
                 $account_type = ["超级会员"];
                 if ($parse_mode === 11 || $parse_mode === 13) {
                     $account_type = ["超级会员", "普通会员", "普通用户"];
                 } else if ($parse_mode === 12) {
                     $account_type = ["普通用户"];
                 }
-                $cookie = self::getRandomCookie($account_type);
+                
+                if ($parse_mode === 13){
+                    $cookie = $this->getRandomCookie($account_type,enterpriseAccountId: $ticket["id"]);
+                }else{
+                    $cookie = $this->getRandomCookie($account_type);
+                }
+
                 $cookieData = $cookie->getData(true);
                 if ($cookieData["code"] !== 200) {
                     return $cookie;
@@ -694,15 +748,7 @@ class ApiParseController extends Controller
             }
         }
 
-        if ($parse_mode === 13) {
 
-            //判断下载票据是否为空
-            $ticket = DownloadTicketService::getNextTicket();
-            if ($ticket === null) {
-                return ResponseController::errorFromMainServer("下载票据为空,请联系管理员");
-            }
-            $json["download_ticket"] = $ticket;
-        }
 
         try {
             $http = new Client();

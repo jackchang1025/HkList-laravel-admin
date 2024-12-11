@@ -23,7 +23,7 @@ class ResponseController extends Controller
         return self::response(200, 200, "请求成功", $data);
     }
 
-    public static function error(int $code,?string $title = null,?string $message = null,int $statusCode = 200): \Illuminate\Http\JsonResponse
+    public static function error(int $code = 400,?string $title = null,?string $message = null,int $statusCode = 200): \Illuminate\Http\JsonResponse
     {
         return response()->json(
             [

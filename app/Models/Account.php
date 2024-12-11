@@ -77,11 +77,17 @@ class Account extends Model
         "prov",
         "svip_end_at",
         "last_use_at",
-        "uk"
+        "uk",
+        "enterprise_account_id"
     ];
 
     public function records()
     {
         return $this->hasMany(Record::class)->withTrashed();
+    }
+
+    public function enterpriseAccount()
+    {
+        return $this->belongsTo(EnterpriseAccount::class);
     }
 }

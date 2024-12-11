@@ -5,7 +5,7 @@ namespace App\Services;
 use App\Models\EnterpriseAccount;
 use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\Log;
-
+use App\Http\Controllers\ParseController;
 class DownloadTicketService
 {
     private const QUEUE_KEY = 'download_tickets:queue';
@@ -60,7 +60,7 @@ class DownloadTicketService
                 ->where('is_active', true)
                 ->orderBy('id')
                 ->get()
-                ->makeHidden(['id', 'is_active', 'created_at', 'updated_at','deleted_at'])
+                ->makeHidden(['is_active', 'created_at', 'updated_at','deleted_at'])
                 ->toArray();
             
             if (!empty($tickets)) {

@@ -17,6 +17,7 @@ class AccountController extends Controller
     public function getAccounts(Request $request)
     {
         $accounts = Account::query()
+            ->with('enterpriseAccount:id,cid,surl')
             ->withCount([
                 'records as total_count',
                 'records as today_count' => function ($query) {
@@ -55,7 +56,9 @@ class AccountController extends Controller
             return ResponseController::networkError("获取百度账户信息");
         }
 
-        if (isset($response["errmsg"]) && $response["errmsg"] === "Invalid Bduss") return ResponseController::accountExpired();
+        if (isset($response["errmsg"]) && $response["errmsg"] === "Invalid Bduss") {
+            return ResponseController::accountExpired();
+        }
         return $response ? ResponseController::success($response) : ResponseController::getAccountInfoFailed();
     }
 
@@ -77,7 +80,9 @@ class AccountController extends Controller
             return ResponseController::networkError("换取AccessToken");
         }
 
-        if (isset($response["error_description"])) return ResponseController::getAccessTokenFailed($response["error_description"]);
+        if (isset($response["error_description"])) {
+            return ResponseController::getAccessTokenFailed($response["error_description"]);
+        }
         return $response ? ResponseController::success($response) : ResponseController::getAccessTokenFailed();
     }
 
@@ -99,7 +104,9 @@ class AccountController extends Controller
             return ResponseController::networkError("获取SVIP到期时间");
         }
 
-        if (isset($response["errmsg"]) && $response["errmsg"] === "Invalid Bduss") return ResponseController::accountExpired();
+        if (isset($response["errmsg"]) && $response["errmsg"] === "Invalid Bduss") {
+            return ResponseController::accountExpired();
+        }
         return $response ? ResponseController::success($response) : ResponseController::getSvipEndTimeFailed();
     }
 
@@ -122,14 +129,20 @@ class AccountController extends Controller
                 return ResponseController::networkError("获取SVIP到期时间");
             }
 
-            if (isset($response["errmsg"]) && $response["errmsg"] === "Invalid Bduss") return ResponseController::accountExpired();
-            if (!isset($response["data"][0]["cid"])) return ResponseController::accountIsNotEnterprise();
+            if (isset($response["errmsg"]) && $response["errmsg"] === "Invalid Bduss") {
+                return ResponseController::accountExpired();
+            }
+            if (!isset($response["data"][0]["cid"])) {
+                return ResponseController::accountIsNotEnterprise();
+            }
             $cid = $response["data"][0]["cid"];
         }
 
         $accountInfoRes = self::_getAccountInfo($type, $cookie);
         $accountInfoData = $accountInfoRes->getData(true);
-        if ($accountInfoData["code"] !== 200) return $accountInfoRes;
+        if ($accountInfoData["code"] !== 200) {
+            return $accountInfoRes;
+        }
 
         $vip_type = match ($accountInfoData["data"]["vip_type"]) {
             0 => "普通用户",
@@ -140,7 +153,9 @@ class AccountController extends Controller
         if ($vip_type === "超级会员") {
             $svipEndAtRes = self::_getSvipEndAt($type, $cookie);
             $svipEndAtData = $svipEndAtRes->getData(true);
-            if ($svipEndAtData["code"] !== 200) return $svipEndAtRes;
+            if ($svipEndAtData["code"] !== 200) {
+                return $svipEndAtRes;
+            }
 
             // 百度漏洞 svip到期后依然可用 #87
             if (isset($svipEndAtData["data"]["reminder"]["svip"])) {
@@ -172,27 +187,36 @@ class AccountController extends Controller
     {
         $validator = Validator::make($request->all(), [
             "type" => ["required", Rule::in([1, 2, 3])],
-            "cookie" => "required|string"
+            "cookie" => "required|string",
+            "enterprise_account_id" => "nullable|exists:enterprise_accounts,id"
         ]);
 
-        if ($validator->fails()) return ResponseController::paramsError();
+        if ($validator->fails()) {
+            return ResponseController::paramsError();
+        }
 
         $request["cookie"] = explode("\n", $request["cookie"]);
 
         $have_repeat = false;
         foreach ($request["cookie"] as $index => $cookie) {
-            if (!$cookie) continue;
+            if (!$cookie) {
+                continue;
+            }
 
             if ($request["type"] === 2) {
                 $cookie = self::_getAccessToken($cookie);
                 $cookieData = $cookie->getData(true);
-                if ($cookieData["code"] !== 200) return $cookie;
+                if ($cookieData["code"] !== 200) {
+                    return $cookie;
+                }
                 $cookie = $cookieData["data"]["access_token"];
             }
 
             $accountItemsRes = self::_getAccountItems($request["type"], $cookie);
             $accountItemsData = $accountItemsRes->getData(true);
-            if ($accountItemsData["code"] !== 200) return $accountItemsRes;
+            if ($accountItemsData["code"] !== 200) {
+                return $accountItemsRes;
+            }
 
             $account = Account::query()->firstWhere("uk", $accountItemsData["data"]["uk"]);
             if (!$account) {
@@ -204,13 +228,18 @@ class AccountController extends Controller
                     $accountItemsData["data"]["cookie"] = null;
                 } else if ($request["type"] === 3) {
                     $accountItemsData["data"]["account_type"] = "enterprise";
+                    
                 }
+
+                $accountItemsData["data"]["enterprise_account_id"] = $request["enterprise_account_id"];
                 Account::query()->create($accountItemsData["data"]);
             } else {
                 $have_repeat = true;
             }
 
-            if ($index < count($accountItemsData["data"]) - 1) sleep(1);
+            if ($index < count($accountItemsData["data"]) - 1) {
+                sleep(1);
+            }
         }
 
         return ResponseController::success(["have_repeat" => $have_repeat]);
@@ -227,13 +256,18 @@ class AccountController extends Controller
             "vip_type" => ["required", Rule::in(["超级会员", "假超级会员", "普通会员", "普通用户"])],
             "switch" => "required|boolean",
             "prov" => ["nullable", Rule::in(["北京市", "天津市", "上海市", "重庆市", "河北省", "山西省", "内蒙古自治区", "辽宁省", "吉林省", "黑龙江省", "江苏省", "浙江省", "安徽省", "福建省", "江西省", "山东省", "河南省", "湖北省", "湖南省", "广东省", "广西壮族自治区", "海南省", "四川省", "贵州省", "云南省", "西藏自治区", "陕西省", "甘肃省", "青海省", "宁夏回族自治区", "新疆维吾尔自治区", "香港特别行政区", "澳门特别行政区", "台湾省"])],
-            "reason" => "string"
+            "reason" => "string",
+            "enterprise_account_id" => "nullable|exists:enterprise_accounts,id"
         ]);
 
-        if ($validator->fails()) return ResponseController::paramsError();
+        if ($validator->fails()) {
+            return ResponseController::paramsError();
+        }
 
         $account = Account::query()->find($account_id);
-        if (!$account) return ResponseController::accountNotExists();
+        if (!$account) {
+            return ResponseController::accountNotExists();
+        }
 
         $account->update([
             "baidu_name" => $request["baidu_name"],
@@ -244,7 +278,8 @@ class AccountController extends Controller
             "vip_type" => $request["vip_type"],
             "switch" => $request["switch"],
             "prov" => $request["prov"],
-            "reason" => $request["reason"]
+            "reason" => $request["reason"],
+            "enterprise_account_id" => $request["enterprise_account_id"]
         ]);
 
         return ResponseController::success();
@@ -253,7 +288,9 @@ class AccountController extends Controller
     public static function updateAccountInfo($account_id)
     {
         $account = Account::query()->find($account_id);
-        if (!$account) return ResponseController::accountNotExists();
+        if (!$account) {
+            return ResponseController::accountNotExists();
+        }
 
         if ($account["account_type"] === "cookie") {
             $type = 1;
@@ -268,7 +305,9 @@ class AccountController extends Controller
         if ($type === 2) {
             $token = self::_getAccessToken($account["refresh_token"]);
             $tokenData = $token->getData(true);
-            if ($tokenData["code"] !== 200) return $token;
+            if ($tokenData["code"] !== 200) {
+                return $token;
+            }
             $cookie = $tokenData["data"]["access_token"];
         } else {
             // fallback type => 1
@@ -304,13 +343,19 @@ class AccountController extends Controller
             "account_ids.*" => "required|numeric"
         ]);
 
-        if ($validator->fails()) return ResponseController::paramsError();
+        if ($validator->fails()) {
+            return ResponseController::paramsError();
+        }
 
         foreach ($request["account_ids"] as $index => $account_id) {
             $res = self::updateAccountInfo($account_id);
             $resData = $res->getData(true);
-            if ($resData["code"] !== 200) return $res;
-            if ($index < count($request["account_ids"]) - 1) sleep(1);
+            if ($resData["code"] !== 200) {
+                return $res;
+            }
+            if ($index < count($request["account_ids"]) - 1) {
+                sleep(1);
+            }
         }
 
         return ResponseController::success();
@@ -324,7 +369,9 @@ class AccountController extends Controller
             "switch" => "required|boolean"
         ]);
 
-        if ($validator->fails()) return ResponseController::paramsError();
+        if ($validator->fails()) {
+            return ResponseController::paramsError();
+        }
 
         Account::query()
             ->whereIn("id", $request["account_ids"])
@@ -358,9 +405,13 @@ class AccountController extends Controller
             "account_ids.*" => "required|numeric"
         ]);
 
-        if ($validator->fails()) return ResponseController::paramsError();
+        if ($validator->fails()) {
+            return ResponseController::paramsError();
+        }
 
-        if (in_array(0, $request["account_ids"])) return ResponseController::accountCanNotBeDeleted();
+        if (in_array(0, $request["account_ids"])) {
+            return ResponseController::accountCanNotBeDeleted();
+        }
 
         Account::query()->whereIn("id", $request["account_ids"])->delete();
 
@@ -373,10 +424,14 @@ class AccountController extends Controller
             "account_id" => "required|numeric",
         ]);
 
-        if ($validator->fails()) return ResponseController::paramsError();
+        if ($validator->fails()) {
+            return ResponseController::paramsError();
+        }
 
         $account = Account::query()->find($request["account_id"]);
-        if (!$account) return ResponseController::accountNotExists();
+        if (!$account) {
+            return ResponseController::accountNotExists();
+        }
 
         $http = new Client([
             "headers" => [
