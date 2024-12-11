@@ -32,19 +32,19 @@ class NeedPassword
 
                 // 验证IP限制
                 if (!$quotaService->checkIp(UtilsController::getIp())) {
+
                     return ResponseController::error(
                         code: 403,
                         title: 'IP限制',
-                        message: '该卡密已绑定其他ip，请更换卡密' .
-                        '<br><span style="color:red;font-weight: 700;">温馨提示:</span>' .
-                        '<span>由于烧号快仅提供测试' .
-                        '<span style="color:FF436A;font-weight: 700;position: relative;top: -2px;">【2次】</span>' .
-                        '<br><span>如需真正下载还多多支持合租</span></span>' .
+                        message: '<span style="color:red;font-weight: 900;">该卡密已绑定其他ip，请更换卡密</span>' .
+                        '<br><a href="https://hezu.gongxianghao.vip" target="_blank" style="font-weight: 900;">' .
+                        '如需不限次数or流量解析在下方链接前往下单</a>' .
                         '<br><a href="https://ass.coxpan.com" target="_blank" style="font-weight: 900;">' .
-                        '作者推荐:超低价百度网盘svip出租，稳定好用！</a>' .
-                        '<br><a href="https://t.me/+B1PiSmBGPIw0MTYx" target="_blank" style="font-weight: 900;">' .
+                        '作者推荐:超低价百度网盘共享svip出租，稳定好用！</a>' .
+                        '<br><a href="https://q3q454wst2.feishu.cn/docx/E4qCdOhnpo68pdxqxx5cjGwLnub?from=from_copylink" target="_blank" style="font-weight: 900;">' .
                         '点击加入防失联交流群组</a></span>'
                     );
+
                 }
 
                 // 验证过期时间
@@ -53,14 +53,12 @@ class NeedPassword
                     return ResponseController::error(
                         code: 403,
                         title: '卡密已过期',
-                        message: '卡密已过期，请更换卡密' .
-                        '<br><span style="color:red;font-weight: 700;">温馨提示:</span>' .
-                        '<span>由于烧号快仅提供测试' .
-                        '<span style="color:FF436A;font-weight: 700;position: relative;top: -2px;">【2次】</span>' .
-                        '<br><span>如需真正下载还多多支持合租</span></span>' .
+                        message: '<span style="color:red;font-weight: 900;">你的卡密已过期，请更换卡密</span>' .
+                        '<br><a href="https://hezu.gongxianghao.vip" target="_blank" style="font-weight: 900;">' .
+                        '如需不限次数or流量解析在下方链接前往下单</a>' .
                         '<br><a href="https://ass.coxpan.com" target="_blank" style="font-weight: 900;">' .
-                        '作者推荐:超低价百度网盘svip出租，稳定好用！</a>' .
-                        '<br><a href="https://t.me/+B1PiSmBGPIw0MTYx" target="_blank" style="font-weight: 900;">' .
+                        '作者推荐:超低价百度网盘共享svip出租，稳定好用！</a>' .
+                        '<br><a href="https://q3q454wst2.feishu.cn/docx/E4qCdOhnpo68pdxqxx5cjGwLnub?from=from_copylink" target="_blank" style="font-weight: 900;">' .
                         '点击加入防失联交流群组</a></span>'
                     );
                     
@@ -71,16 +69,14 @@ class NeedPassword
                 if ($quotaService->isUsedUp() || $quotaService->isFileSizeUsedUp()) {
 
                     return ResponseController::error(
-                        code: 403,  
+                        code: 403,
                         title: '卡密配额已用完',
-                        message: '卡密配额已用完，请更换卡密' .
-                        '<br><span style="color:red;font-weight: 700;">温馨提示:</span>' .
-                        '<span>由于烧号快仅提供测试' .
-                        '<span style="color:FF436A;font-weight: 700;position: relative;top: -2px;">【2次】</span>' .
-                        '<br><span>如需真正下载还多多支持合租</span></span>' .
+                        message: '<span style="color:red;font-weight: 900;">卡密次数/文件配额已用完，请更换卡密</span>' .
+                        '<br><a href="https://hezu.gongxianghao.vip" target="_blank" style="font-weight: 900;">' .
+                        '如需不限次数or流量解析在下方链接前往下单</a>' .
                         '<br><a href="https://ass.coxpan.com" target="_blank" style="font-weight: 900;">' .
-                        '作者推荐:超低价百度网盘svip出租，稳定好用！</a>' .
-                        '<br><a href="https://t.me/+B1PiSmBGPIw0MTYx" target="_blank" style="font-weight: 900;">' .
+                        '作者推荐:超低价百度网盘共享svip出租，稳定好用！</a>' .
+                        '<br><a href="https://q3q454wst2.feishu.cn/docx/E4qCdOhnpo68pdxqxx5cjGwLnub?from=from_copylink" target="_blank" style="font-weight: 900;">' .
                         '点击加入防失联交流群组</a></span>'
                     );
                 }
@@ -126,16 +122,15 @@ class NeedPassword
     private function passwordErrorResponse(): Response
     {
         return ResponseController::error(
-            code: 403,   
+            code: 403,
             title: '解析密码错误',
-            message: '暗号错误(或已更新)，请重新获取 ' .
+            message: '<a href="/" target="_blank" style="font-weight: 900;font-size: 29px;">卡密/暗号错误(或已更新)，请重新获取</a>' .
             '<br><span style="color:red;font-weight: 700;">温馨提示:</span>' .
-            '<span>由于烧号快仅提供测试' .
-            '<span style="color:FF436A;font-weight: 700;position: relative;top: -2px;">【2次】</span>' .
-            '<br><span>如需真正下载还多多支持合租</span></span>' .
+            '<a href="https://hezu.gongxianghao.vip" target="_blank" style="font-weight: 900;">' .
+            '如需不限次数or流量解析在下方链接前往下单</a>' .
             '<br><a href="https://ass.coxpan.com" target="_blank" style="font-weight: 900;">' .
             '作者推荐:超低价百度网盘svip出租，稳定好用！</a>' .
-            '<br><a href="https://t.me/+B1PiSmBGPIw0MTYx" target="_blank" style="font-weight: 900;">' .
+            '<br><a href="http://qm.qq.com/cgi-bin/qm/qr?_wv=1027&k=B-K3Z-CreEtxD4PW3gn2cPa-XuU1iSPg&authKey=i%2Fq7Bamff%2BaV1PaCowD3RvZOhQELQCnd4URySWWZuO0c4Z1rN%2Ba3uHReFih3uTgT&noverify=0&group_code=63120253" target="_blank" style="font-weight: 900;">' .
             '点击加入防失联交流群组</a></span>'
         );
     }
