@@ -14,10 +14,35 @@ use Illuminate\Validation\Rule;
 
 class AccountController extends Controller
 {
+    /**
+     * 获取账号列表
+     * 
+     * @param Request $request
+     * @return \Illuminate\Http\JsonResponse
+     */
     public function getAccounts(Request $request)
     {
-        $accounts = Account::query()
-            ->with('enterpriseAccount:id,cid,surl')
+        $validated = $request->validate([
+            'size' => 'integer|min:1|max:100',
+            'keyword' => 'nullable|string|max:50',
+            'enterprise_account_id' => 'nullable|exists:enterprise_accounts,id',
+            'account_type' => 'nullable|in:cookie,access_token,enterprise',
+            'sort_field' => 'nullable|string|in:id,baidu_name,vip_type,created_at',
+            'sort_order' => 'nullable|string|in:asc,desc'
+        ], [
+            'size.integer' => '每页显示数量必须是整数',
+            'size.min' => '每页显示数量最小值为1',
+            'size.max' => '每页显示数量最大值为100',
+            'keyword.string' => '关键词必须是字符串',
+            'keyword.max' => '关键词最大长度为50个字符',
+            'enterprise_account_id.exists' => '所选企业账号不存在',
+            'account_type.in' => '账号类型必须是cookie,access_token,enterprise之一',
+            'sort_field.in' => '排序字段不正确',
+            'sort_order.in' => '排序方式必须是asc或desc'
+        ]);
+
+        $query = Account::query()
+            ->with('enterpriseAccount:id,name,cid,surl')
             ->withCount([
                 'records as total_count',
                 'records as today_count' => function ($query) {
@@ -32,10 +57,52 @@ class AccountController extends Controller
                     $query->leftJoin('file_lists', 'file_lists.id', '=', 'records.fs_id')
                         ->whereDate('records.created_at', Carbon::today(config("app.timezone")));
                 }
-            ], "file_lists.size")
-            ->paginate($request["size"]);
+            ], "file_lists.size");
 
-        return ResponseController::success($accounts);
+        // 关键词搜索
+        if (!empty($validated['keyword'])) {
+            // 清理关键词中的空格、换行等字符
+            $keyword = trim(preg_replace('/\s+/', '', $validated['keyword']));
+            
+            if (!empty($keyword)) {  // 确保清理后的关键词不为空
+                $query->where(function($q) use ($keyword) {
+                    $q->where('baidu_name', 'like', "%{$keyword}%")
+                      ->orWhere('uk', 'like', "%{$keyword}%")
+                      ->orWhere('cid', 'like', "%{$keyword}%")
+                      ->orWhereHas('enterpriseAccount', function($q) use ($keyword) {
+                          $q->where('cid', 'like', "%{$keyword}%")
+                            ->orWhere('surl', 'like', "%{$keyword}%");
+                      });
+                });
+            }
+        }
+
+        // 企业账号筛选
+        if (isset($validated['enterprise_account_id'])) {
+            $query->where('enterprise_account_id', $validated['enterprise_account_id']);
+        }
+
+        // 账号类型筛选
+        if (isset($validated['account_type'])) {
+            $query->where('account_type', $validated['account_type']);
+        }
+
+        // 排序
+        $sortField = $validated['sort_field'] ?? 'id';
+        $sortOrder = $validated['sort_order'] ?? 'desc';
+        $query->orderBy($sortField, $sortOrder);
+
+        $accounts = $query->paginate($validated['size'] ?? 15);
+
+        return ResponseController::success([
+            'list' => $accounts->items(),
+            'pagination' => [
+                'total' => $accounts->total(),
+                'current_page' => $accounts->currentPage(),
+                'size' => $accounts->perPage(),
+                'last_page' => $accounts->lastPage()
+            ]
+        ]);
     }
 
     public static function _getAccountInfo($type, $cookie)

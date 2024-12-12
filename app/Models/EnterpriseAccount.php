@@ -21,6 +21,7 @@ use Illuminate\Database\Eloquent\Model;
 class EnterpriseAccount extends Model
 {
     protected $fillable = [
+        'name',
         'cookie',
         'cid',
         'bdstoken',

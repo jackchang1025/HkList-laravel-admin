@@ -22,6 +22,7 @@ class EnterpriseAccountRequest extends FormRequest
     public function rules(): array
     {
         $rules = [
+            'name' => 'nullable|string|max:191',
             'cookie' => 'required|string',
             'cid' => 'required|string|max:191',
             'bdstoken' => 'required|string|max:191',
@@ -49,6 +50,9 @@ class EnterpriseAccountRequest extends FormRequest
     public function messages(): array
     {
         return [
+            'name.string' => '企业账号名称必须是字符串',
+            'name.max' => '企业账号名称不能超过191个字符',
+            
             'cookie.required' => 'Cookie凭证不能为空',
             'cookie.string' => 'Cookie凭证必须是字符串',
             

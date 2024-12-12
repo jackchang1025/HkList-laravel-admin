@@ -23,7 +23,7 @@ class EnterpriseAccountController extends Controller
             'size' => 'integer|min:1|max:100',
             'keyword' => 'nullable|string|max:50',
             'is_active' => 'nullable',
-            'sort_field' => 'nullable|string|in:id,cid,created_at,updated_at',
+            'sort_field' => 'nullable|string|in:id,name,cid,created_at,updated_at',
             'sort_order' => 'nullable|string|in:asc,desc'
         ], [
             'page.integer' => '页码必须是整数',
@@ -34,7 +34,7 @@ class EnterpriseAccountController extends Controller
             'keyword.string' => '关键词必须是字符串',
             'keyword.max' => '关键词最大长度为50个字符',
             'sort_field.string' => '排序字段必须是字符串',
-            'sort_field.in' => '排序字段必须是id, cid, created_at, updated_at之一',
+            'sort_field.in' => '排序字段必须是id, name, cid, created_at, updated_at之一',
             'sort_order.string' => '排序顺序必须是字符串',
             'sort_order.in' => '排序顺序必须是asc或desc'
         ]);
@@ -43,12 +43,15 @@ class EnterpriseAccountController extends Controller
 
         // 关键词搜索
         if (!empty($validated['keyword'])) {
-            $keyword = $validated['keyword'];
-            $query->where(function($q) use ($keyword) {
-                $q->where('cid', 'like', "%{$keyword}%")
-                  ->orWhere('surl', 'like', "%{$keyword}%")
-                  ->orWhere('path', 'like', "%{$keyword}%");
-            });
+            $keyword = trim(preg_replace('/\s+/', '', $validated['keyword']));
+            if (!empty($keyword)) {
+                $query->where(function($q) use ($keyword) {
+                    $q->where('name', 'like', "%{$keyword}%")
+                      ->orWhere('cid', 'like', "%{$keyword}%")
+                      ->orWhere('surl', 'like', "%{$keyword}%")
+                      ->orWhere('path', 'like', "%{$keyword}%");
+                });
+            }
         }
 
         // 激活状态筛选
@@ -90,6 +93,12 @@ class EnterpriseAccountController extends Controller
     public function store(EnterpriseAccountRequest $request)
     {
         $validated = $request->validated();
+        
+        // 如果没有提供name，使用cid作为默认名称
+        if (empty($validated['name'])) {
+            $validated['name'] = $validated['cid'];
+        }
+        
         $account = EnterpriseAccount::create($validated);
         
         return ResponseController::success([
@@ -107,9 +116,13 @@ class EnterpriseAccountController extends Controller
     public function update(EnterpriseAccountRequest $request, $id)
     {
         $validated = $request->validated();
-
-        $account = EnterpriseAccount::findOrFail($id);
         
+        // 如果没有提供name，使用cid作为默认名称
+        if (empty($validated['name'])) {
+            $validated['name'] = $validated['cid'];
+        }
+        
+        $account = EnterpriseAccount::findOrFail($id);
         $account->update($validated);
         
         return ResponseController::success([
