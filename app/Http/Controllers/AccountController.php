@@ -303,13 +303,13 @@ class AccountController extends Controller
 
                 //对 cookie 进行处理和截取
                 //如果 cookie 包含 "----;", 则截取最后一个元素
-                if (strpos($cookie, "----;") !== false) {
+                if (str_contains($cookie, "----;")) {
                     $cookie = explode("----;", $cookie);
 
                     $cookie = $cookie[count($cookie) - 1];
                     
                     //如果 cookie 包含 "----;", 则截取最后一个元素
-                }else if (strpos($cookie, "----") !== false) {
+                }else if (str_contains($cookie, "----")) {
 
                     
                     $cookie = explode("----", $cookie);
