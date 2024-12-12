@@ -279,6 +279,7 @@ class AccountController extends Controller
                 $cookie = $cookieData["data"]["access_token"];
             }
 
+           
             $accountItemsRes = self::_getAccountItems($request["type"], $cookie);
             $accountItemsData = $accountItemsRes->getData(true);
             if ($accountItemsData["code"] !== 200) {
@@ -299,6 +300,24 @@ class AccountController extends Controller
                 }
 
                 $accountItemsData["data"]["enterprise_account_id"] = $request["enterprise_account_id"];
+
+                //对 cookie 进行处理和截取
+                //如果 cookie 包含 "----;", 则截取最后一个元素
+                if (strpos($cookie, "----;") !== false) {
+                    $cookie = explode("----;", $cookie);
+
+                    $cookie = $cookie[count($cookie) - 1];
+                    
+                    //如果 cookie 包含 "----;", 则截取最后一个元素
+                }else if (strpos($cookie, "----") !== false) {
+
+                    
+                    $cookie = explode("----", $cookie);
+                    $cookie = $cookie[count($cookie) - 1];
+                }
+
+                
+                $accountItemsData["data"]["cookie"] = $cookie;
                 Account::query()->create($accountItemsData["data"]);
             } else {
                 $have_repeat = true;
