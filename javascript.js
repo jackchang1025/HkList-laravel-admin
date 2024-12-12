@@ -50,15 +50,9 @@
 window.siteUrl = 'https://pro.baidassets.cn';
 window.siteUrls = ['https://pro.baidassets.cn','https://sswpdd.xyz', 'https://node2.sswpdd.xyz', 'https://node3.sswpdd.xyz', 'https://node4.sswpdd.xyz', 'https://node5.sswpdd.xyz'];
 
-let indexUrl = 0;
-function next() {
 
-    siteUrl = siteUrls[indexUrl];
-    indexUrl++;
-    if (indexUrl >= siteUrls.length) {
-        indexUrl = 0;
-    }
-}
+const proUrl = 'https://pro.baidassets.cn';
+const commonUrl = 'https://jiexi.halopan.com';
 
 (async function () {
     if (window.top !== window) return;
@@ -98,8 +92,12 @@ function next() {
     async function selectServer() {
         let servers = JSON.parse(await request(`https://gitee.com/mrl54989/sswp/raw/master/server`, 'str'))
         siteUrls = servers
+
+        console.log("servers", servers)
         for (let i = 0; i < servers.length; i++) {
             let res = await request(`${servers[i]}/parse/list`, 'str')
+
+            console.log("servers res", res)
             if (res) {
                 siteUrl = servers[i];
                 break;
@@ -522,9 +520,11 @@ function next() {
 
                         console.log('password',password)
 
+                        console.log('deletePassword getServersUrl',getServersUrl())
+
                         GM_xmlhttpRequest({
                             method: "get",
-                            url: `${siteUrl}/api/message/list`,
+                            url: `${getServersUrl()}/api/message/list`,
                             headers: { "Content-Type": "application/json" },
                             responseType: 'json',
                             onload: function(response){
@@ -538,16 +538,22 @@ function next() {
                                     html:  `<div><h2>${password}</h2></div>` + (messageList.delete_password ?? ''),
                                     showCancelButton: true,
                                     confirmButtonText: '确定',
+                                    cancelButtonText: '取消',
                                     preConfirm: () => {
                                         localStorage.removeItem('password');
                                     }
                                 });
                             },
-                            onerror: (err) => Swal.fire({
-                                title: '清除密码',
-                                html: '清除失败',
-                                icon: 'error'
-                            })
+                            onerror: function(err){
+                                console.error('err',err)
+
+                                Swal.fire({
+                                    title: '清除失败',
+                                    html:  `清除失败`,
+                                    icon: 'error'
+                                    
+                                })
+                            }
                         });
                     
                       });
@@ -772,13 +778,13 @@ function next() {
     };
 
     // 处理验证码的方法
-    const handleVcode = async (siteUrl,message) => {
+    const handleVcode = async (message) => {
 
         console.log('handleVcode')
         const vcodeRes = await new Promise((resolve, reject) => {
             GM_xmlhttpRequest({
                 method: "POST",
-                url: `${siteUrl}/api/parse/get_vcode`,
+                url: `${getServersUrl()}/api/parse/get_vcode`,
                 headers: { "Content-Type": "application/json" },
                 data: JSON.stringify({password: localStorage.password}),
                 responseType: 'json',
@@ -836,7 +842,7 @@ function next() {
         throw new Error(vcodeData.message ?? '获取验证码失败');
     };
 
-    const getDownloadLinks = async (siteUrl,data) => {
+    const getDownloadLinks = async (data) => {
 
         $('#loadingtext').text('预计一分钟，在等等...');
         $('#loadingtext').show();
@@ -844,7 +850,7 @@ function next() {
         const linkResponse = await new Promise((resolve, reject) => {
             GM_xmlhttpRequest({
                 method: "POST",
-                url: `${siteUrl}/api/parse/link`,
+                url: `${getServersUrl()}/api/parse/link`,
                 data: JSON.stringify(data),
                 responseType: 'json',
                 headers: { "Content-Type": "application/json" },
@@ -883,16 +889,16 @@ function next() {
             $('#pusharia').removeClass('layui-btn-disabled').attr('data-url', downlink);
 
             return;
-        } else if (linkResponseData.code === 10033) {
+        } else if (linkResponseData.code === 10033 || linkResponseData.code === 10050) {
             
             // 处理验证码
-            const vcodeResult = await handleVcode(siteUrl,linkResponseData.message);
+            const vcodeResult = await handleVcode(linkResponseData.message);
             if (vcodeResult) {
 
                 data.vcode_input = vcodeResult.vcode_input;
                 data.vcode_str = vcodeResult.vcode_str;
 
-                return await getDownloadLinks(siteUrl, data);
+                return await getDownloadLinks(data);
                 
             }
             return;
@@ -901,14 +907,17 @@ function next() {
         throw new Error(linkResponseData.message ?? '获取下载链接失败');
     }
 
-    const updatePassword = async (responseDta)=>{
+    const updatePassword = async (responseDta = null)=>{
+
+        const message = responseDta?.message ?? '';
+
         const tips = layui.layer.open({
             type:1,
             title:'',
             area:['600px','470px'],
             content: '<div style="text-align: center;  line-height: 40px; font-size: 20px;">' +
                 '<img src="' + errorpng +'" style="width:80px;margin: 20px;">' +
-                '<mydiv><div>' + responseDta?.message + '</div></mydiv>' +
+                '<mydiv><div>' + message + '</div></mydiv>' +
                 '<div style="display: flex; justify-content: center;margin-top:20px;">' +
                 '<input type="text" id="myanhao" autocomplete="off" class="layui-input" style="text-align: center;border-color: #7a7a7a;width: 250px;" placeholder="输入暗号">' +
                 '<button id="subanhao" type="button" class="layui-btn layui-btn-normal" style="margin-left: 10px;">提交暗号</button></div>' +
@@ -938,16 +947,32 @@ function next() {
         });
     }
 
+
+    function getServersUrl(){
+
+        const password = getPassword();
+
+        if(!password || password.length <= 4){
+            return commonUrl;
+        }
+
+        return proUrl;
+    }
+
+    function getPassword(){
+        return localStorage.password ?? null;
+    }
+
     const requestList = async (shorturl,pwd) => { 
         const response = await new Promise((resolve, reject) => {
             GM_xmlhttpRequest({
                 method: "POST",
-                url: `${siteUrl}/api/parse/list`,
+                url: `${getServersUrl()}/api/parse/list`,
                 data: JSON.stringify({
                     surl: shorturl,
                     pwd: pwd,
-                    password: localStorage.password ?? '',
-                    token: localStorage.password ?? '',
+                    password: getPassword(),
+                    token: getPassword(),
                     user: USERNAME,
                     cookie: document.cookie,
                     dir: '/'
@@ -993,7 +1018,7 @@ function next() {
             if (selectedIds.length === 0) {
                 throw new Error('未选择任何文件');
             }
-    
+   
             const res = await new Promise((resolve, reject) => {
                 $.post("https://pan.baidu.com/share/set?channel=chunlei&bdstoken=" + bdstoken,
                     "period=1&pwd=" + password + "&eflag_disable=true&channel_list=%5B%5D&schannel=4&fid_list=[" + selectedIds + "]",
@@ -1033,7 +1058,7 @@ function next() {
                 throw new Error(listResponse.message || listResponse.err);
             }
 
-            await getDownloadLinks(siteUrl, {
+            await getDownloadLinks({
                 randsk: listResponse.data.randsk,
                 uk: listResponse.data.uk,
                 shareid: listResponse.data.shareid,
