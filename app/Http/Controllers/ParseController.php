@@ -137,10 +137,13 @@ class ParseController extends Controller
             "switch" => 1,
             "account_type" => $account_type,
         ];
-        if (config("94list.limit_prov")) $where["prov"] = $prov;
+        if (config("94list.limit_prov")) {
+            $where["prov"] = $prov;
+        }
         return Account::query()
             ->when($enterpriseAccountId, fn ($query) => $query->where('enterprise_account_id', $enterpriseAccountId))
             ->whereIn("vip_type", $vipType)
+            ->where($where)
             ->leftJoin("records", function ($join) {
                 $join->on("accounts.id", "=", "records.account_id")->whereDate("records.created_at", "=", now());
             })
