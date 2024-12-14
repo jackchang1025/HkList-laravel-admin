@@ -57,6 +57,8 @@ class DownloadTicketService
         try {
             // 获取所有激活的账号的 download_ticket
             $tickets = EnterpriseAccount::query()
+                //accounts 表中 switch 为 1 的账号 且 数量不能为空
+                ->whereHas('accounts', fn ($query) => $query->where('switch', 1))
                 ->where('is_active', true)
                 ->orderBy('id')
                 ->get()
