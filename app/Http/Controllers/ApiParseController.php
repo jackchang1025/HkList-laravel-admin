@@ -608,9 +608,14 @@ class ApiParseController extends Controller
 
         $ua = config("94list.user_agent");
 
+        $fsidlist = [];
+        foreach ( $request["fs_ids"] as $item){
+            $fsidlist[] = (int)$item;
+        }
+
         $json = [
             "type" => $parse_mode,
-            "fsidlist" => $request["fs_ids"],
+            "fsidlist" => $fsidlist,
             "code" => config("94list.code"),
             "randsk" => $request["randsk"],
             "uk" => $request["uk"],
