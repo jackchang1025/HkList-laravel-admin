@@ -595,7 +595,7 @@ class ApiParseController extends Controller
 
         if (count($fileList) !== count($request["fs_ids"])) {
             return ResponseController::unknownFsId();
-        
+        }
 
         foreach ($fileList as $file) {
             if ($file["size"] < config("94list.min_single_filesize")) {
