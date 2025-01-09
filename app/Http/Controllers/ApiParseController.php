@@ -29,7 +29,7 @@ use Illuminate\Validation\ValidationException;
 use XdbSearcher;
 use App\Services\DownloadTicketService;
 use App\Services\QuotaService;
-
+use App\Models\Keyword;
 class ApiParseController extends Controller
 {
 
@@ -477,13 +477,25 @@ class ApiParseController extends Controller
 
         $errno = $response["errtype"] ?? ($response["errno"] ?? "未知");
 
+        
         if ($errno === 0) {
             if (!isset($response["data"]["uk"]) | !isset($response["data"]["shareid"]) | !isset($response["data"]["seckey"]) | !isset($response["data"]["list"])) {
                 $errno = "请检查链接是否有效并重试";
             } else {
+
+                $keywords = Keyword::where('is_active', true)
+                    ->get();
+
                 // 保存所有文件到数据库
                 foreach ($response["data"]["list"] as $file) {
+                    
                     if ($file["isdir"] === 1 || $file["isdir"] === "1" || !isset($file["fs_id"]) || !isset($file["md5"])) continue;
+
+                    foreach ($keywords as $keyword) {
+                        if ($keyword->isMatch($file["server_filename"])) {
+                            return ResponseController::keywordMatch($keyword->keyword);
+                        }
+                    }
 
                     $find = FileList::query()->firstWhere([
                         "surl" => $request["surl"],
@@ -583,7 +595,7 @@ class ApiParseController extends Controller
 
         if (count($fileList) !== count($request["fs_ids"])) {
             return ResponseController::unknownFsId();
-        }
+        
 
         foreach ($fileList as $file) {
             if ($file["size"] < config("94list.min_single_filesize")) {

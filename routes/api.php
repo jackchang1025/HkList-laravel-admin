@@ -17,6 +17,7 @@ use App\Http\Middleware\RegisterOrLoginUser;
 use Illuminate\Support\Facades\Route;
 use App\Http\Controllers\ResponseController;
 use App\Http\Controllers\EnterpriseAccountController;
+use App\Http\Controllers\KeywordController;
 
 Route::post("/install", [InstallController::class, "install"]);
 
@@ -136,3 +137,9 @@ Route::middleware(["NeedInstall", "AutoUpdate", ])->group(function () {
         });
     });
 });
+
+// 关键词管理路由
+Route::apiResource('keywords', KeywordController::class);
+
+// 关键词匹配检查
+Route::post('keywords/check-match', [KeywordController::class, 'checkMatch']);

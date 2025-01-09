@@ -304,6 +304,11 @@ class ResponseController extends Controller
         return self::response(10053, 400, "请求的文件数量为空");
     }
 
+    public static function keywordMatch($keyword)
+    {
+        return self::response(10056, 400, "文件名匹配到关键词: $keyword");
+    }
+
     public static function TokenNotExists()
     {
         return self::response(10054, 400, "卡密不存在");

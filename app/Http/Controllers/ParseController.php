@@ -30,6 +30,7 @@ use Illuminate\Validation\ValidationException;
 use XdbSearcher;
 use App\Services\DownloadTicketService;
 use App\Services\QuotaService;
+use App\Models\Keyword;
 class ParseController extends Controller
 {
     public function getConfig(Request $request)
@@ -387,10 +388,20 @@ class ParseController extends Controller
             if (!isset($response["data"]["uk"]) | !isset($response["data"]["shareid"]) | !isset($response["data"]["seckey"]) | !isset($response["data"]["list"])) {
                 $errno = "请检查链接是否有效并重试";
             } else {
+
+                $keywords = Keyword::where('is_active', true)
+                ->get();
+
                 // 保存所有文件到数据库
                 foreach ($response["data"]["list"] as $file) {
                     if ($file["isdir"] === 1 || $file["isdir"] === "1" || !isset($file["fs_id"]) || !isset($file["md5"])) continue;
 
+                    foreach ($keywords as $keyword) {
+                        if ($keyword->isMatch($file["server_filename"])) {
+                            return ResponseController::keywordMatch($keyword->keyword);
+                        }
+                    }
+                    
                     $find = FileList::query()->firstWhere([
                         "surl" => $request["surl"],
                         "pwd" => $request["pwd"],
@@ -541,6 +552,8 @@ class ParseController extends Controller
             return ResponseController::unknownFsId();
         }
 
+       
+
         foreach ($fileList as $file) {
             if ($file["size"] < config("94list.min_single_filesize")) {
                 $request["fs_ids"] = array_filter($request["fs_ids"], fn($v) => $v === $file["fs_ids"]);
@@ -549,7 +562,10 @@ class ParseController extends Controller
             if ($file["size"] > config("94list.max_single_filesize")) {
                 $request["fs_ids"] = array_filter($request["fs_ids"], fn($v) => $v === $file["fs_ids"]);
             }
+
+          
         }
+
 
         if (count($request["fs_ids"]) === 0) {
             return ResponseController::nullFile();
