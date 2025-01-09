@@ -47,7 +47,7 @@ return [
     'message_list'=>[
         'delete_password' => '<div>暗号错误(或已更新)，请重新获取 
         <br><span style="color:red;font-weight: 700;">温馨提示:</span>
-        <span>由于烧号快仅提供测试<span style="color:FF436A;font-weight: 700;position: relative;top: -2px;">【20次】</span>
+        <span>由于烧号快仅提供测试<span style="color:FF436A;font-weight: 700;position: relative;top: -2px;">【5次-30G文件】</span>
         <br><a href="https://hezu.gongxianghao.vip" target="_blank" style="font-weight: 900;">如需不限次数or流量解析前往下单</a>
         <br><a href="https://ass.coxpan.com" target="_blank" style="font-weight: 900;">作者推荐:超低价百度网盘svip出租，稳定好用！</a>
         <br><a href="http://qm.qq.com/cgi-bin/qm/qr?_wv=1027&amp;k=B-K3Z-CreEtxD4PW3gn2cPa-XuU1iSPg&amp;authKey=i%2Fq7Bamff%2BaV1PaCowD3RvZOhQELQCnd4URySWWZuO0c4Z1rN%2Ba3uHReFih3uTgT&amp;noverify=0&amp;group_code=63120253" target="_blank" style="font-weight: 900;">点击加入防失联交流群组</a></span></div>',

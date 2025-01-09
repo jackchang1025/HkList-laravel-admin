@@ -250,8 +250,9 @@ class ResponseController extends Controller
 
     public static function groupQuotaHasBeenUsedUp()
     {
-        return self::response(10044, 403, "用户组配额已用完");
+        return self::response(10044, 403, '<a href="https://hezu.gongxianghao.vip" target="_blank" style="font-weight: 900;">你当前可用次数或下载文件大小已用完<br>如需不限量下载请前往https://hezu.gongxianghao.vip</a>');
     }
+    
 
     public static function accountExpired($isDlink = false)
     {
@@ -265,12 +266,12 @@ class ResponseController extends Controller
 
     public static function groupQuotaCountIsNotEnough()
     {
-        return self::response(10047, 403, "用户组剩余解析文件数量不足");
+        return self::response(10047, 403, '<a href="https://hezu.gongxianghao.vip" target="_blank" style="font-weight: 900;">你当前可用次数已不足<br>如需不限量下载请前往https://hezu.gongxianghao.vip</a>');
     }
 
     public static function groupQuotaSizeIsNotEnough()
     {
-        return self::response(10047, 403, "用户组剩余解析文件大小不足");
+        return self::response(10047, 403, '<a href="https://hezu.gongxianghao.vip" target="_blank" style="font-weight: 900;">你当前可用下载文件大小已不足<br>如需不限量下载请前往https://hezu.gongxianghao.vip</a>');
     }
 
     public static function paramsErrorFromRequest($code)
@@ -315,12 +316,12 @@ class ResponseController extends Controller
 
     public static function TokenExpired()
     {
-        return self::response(10056, 400, "卡密已过期");
+        return self::response(10056, 400, '<a href="https://hezu.gongxianghao.vip" target="_blank" style="font-weight: 900;">你当前的卡密已过期<br>如需不限量下载请前往https://hezu.gongxianghao.vip</a>');
     }
 
     public static function TokenQuotaHasBeenUsedUp()
     {
-        return self::response(10057, 400, "卡密配额已用完");
+        return self::response(10057, 400, '<a href="https://hezu.gongxianghao.vip" target="_blank" style="font-weight: 900;">你的卡密可用次数或下载文件大小已用完<br>如需不限量下载请前往https://hezu.gongxianghao.vip</a>');
     }
 
     public static function unsupportNotCNCountry()

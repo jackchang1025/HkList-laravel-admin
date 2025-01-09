@@ -124,9 +124,10 @@ class NeedPassword
         return ResponseController::error(
             code: 403,
             title: '解析密码错误',
-            message: '<a href="/" target="_blank" style="font-weight: 900;font-size: 29px;">卡密/暗号错误(或已更新)，请重新获取</a>' .
+            message: '<a href="https://hezu.gongxianghao.vip" target="_blank" style="font-weight: 900;font-size: 29px;">卡密/暗号错误(或已更新)，请重新获取</a>' .
             '<br><span style="color:red;font-weight: 700;">温馨提示:</span>' .
-            '<a href="https://hezu.gongxianghao.vip" target="_blank" style="font-weight: 900;">' .
+            '<span>由于烧号快仅提供测试<span style="color:FF436A;font-weight: 700;position: relative;top: -2px;">【5次-30G文件】</span>' .
+            '<br><a href="https://hezu.gongxianghao.vip" target="_blank" style="font-weight: 900;">' .
             '如需不限次数or流量解析在下方链接前往下单</a>' .
             '<br><a href="https://ass.coxpan.com" target="_blank" style="font-weight: 900;">' .
             '作者推荐:超低价百度网盘svip出租，稳定好用！</a>' .

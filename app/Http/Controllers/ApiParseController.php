@@ -659,12 +659,11 @@ class ApiParseController extends Controller
             ->get();
 
             if ($account->isEmpty()) {
-                return ResponseController::errorFromMainServer("企业账号关联的账号为空,请联系管理员");
-            }
+                return ResponseController::errorFromMainServer("请联系管理员补号,超级VIP不限次数不限量，不会出现账号不足的情况，随时可用。https://hezu.gongxianghao.vip");            }
 
              //判断 count($request["fs_ids"]) 是否大于等于 $account->count()
              if (count($request["fs_ids"]) > $account->count()) {
-                return ResponseController::errorFromMainServer("企业账号关联的账号数量不足,请联系管理员");
+                return ResponseController::errorFromMainServer("请联系管理员补号,超级VIP不限次数不限量，不会出现账号不足的情况，随时可用。https://hezu.gongxianghao.vip");
             }
 
             $json["download_ticket"] = $ticket;
