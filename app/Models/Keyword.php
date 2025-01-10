@@ -31,13 +31,17 @@ class Keyword extends Model
     // 检查文件名是否匹配关键词
     public function isMatch($filename)
     {
+        // 确保使用UTF-8编码
+        $filename = mb_convert_encoding($filename, 'UTF-8', 'auto');
+        $keyword = mb_convert_encoding($this->keyword, 'UTF-8', 'auto');
+        
         switch($this->match_type) {
             case self::MATCH_TYPE_CONTAINS:
-                return str_contains($filename, $this->keyword);
+                return mb_stripos($filename, $keyword) !== false;
             case self::MATCH_TYPE_EQUALS:
-                return $filename === $this->keyword;
+                return mb_strtolower($filename) === mb_strtolower($keyword);
             case self::MATCH_TYPE_NOT_EQUALS:
-                return $filename !== $this->keyword;
+                return mb_strtolower($filename) !== mb_strtolower($keyword);
             default:
                 return false;
         }

@@ -26,10 +26,11 @@ class UpdataPassword extends Command
     public function handle()
     {
 
+        $password = random_int(1000, 9999);
         updateEnv([
-            '_94LIST_RANDOM_PASSWORD' =>  random_int(1000, 9999),
+            '_94LIST_RANDOM_PASSWORD' =>  $password,
         ]);
 
-        $this->info(env('_94LIST_RANDOM_PASSWORD'));
+        $this->info($password);
     }
 }
