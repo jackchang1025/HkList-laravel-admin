@@ -306,7 +306,7 @@ class ResponseController extends Controller
 
     public static function keywordMatch($keyword)
     {
-        return self::response(10056, 400, "文件名匹配到关键词: $keyword");
+        return self::response(10056, 400, "此文件因涉及侵权、色情、反动、低俗等信息！<br>服务器拒绝解析当前的文件 / 格式");
     }
 
     public static function TokenNotExists()
