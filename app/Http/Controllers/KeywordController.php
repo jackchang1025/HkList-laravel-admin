@@ -39,10 +39,11 @@ class KeywordController extends Controller
         return response()->json($keyword);
     }
 
-    public function destroy(Keyword $keyword)
+    public function destroy(Request $request)
     {
-        $keyword->delete();
-        return response()->json(null, 204);
+        $ids = $request->input("ids");
+        Keyword::whereIn("id", $ids)->delete();
+        return ResponseController::success();
     }
 
     // 检查文件名是否匹配关键词
